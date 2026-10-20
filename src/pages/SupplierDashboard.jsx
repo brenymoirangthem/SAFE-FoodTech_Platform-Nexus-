@@ -2192,8 +2192,8 @@ useEffect(() => {
 
       {showCrisisMap && (
         <div className="fixed inset-0 z-[100]">
-          <RiskMap district={currentCrisis?.location} onBack={() => setShowCrisisMap(false)} />
-        </div>
+<RiskMap district="Ukhrul" onBack={() => setShowCrisisMap(false)} />    
+      </div>
       )}
 
       {showTeamModal && (

@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 
 // Hardcoded district coordinates for prototype
 const DISTRICT_COORDINATES = {
-  "Ukhrul": { lat: 25.067, lng: 94.363 },
+  "Ukhrul": { lat: 25.0967, lng: 94.363 },
   "Imphal": { lat: 24.817, lng: 93.936 },
   "Churachandpur": { lat: 24.333, lng: 93.683 },
   "Thoubal": { lat: 24.634, lng: 93.985 },
@@ -60,7 +60,7 @@ const MapController = ({ coords }) => {
 const RiskMap = ({ district: propDistrict, onBack }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const district = propDistrict || searchParams.get('district');
+  const district = propDistrict || searchParams.get('district')|| "Ukhrul";
   
   const targetCoords = DISTRICT_COORDINATES[district] || DEFAULT_CENTER;
   const isTargetFound = !!DISTRICT_COORDINATES[district];

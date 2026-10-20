@@ -602,6 +602,8 @@ class RiskZone(Base):
     __tablename__ = "risk_zones"
 
     id = Column(Integer, primary_key=True, index=True)
+    lat = Column(Float, nullable=True)
+    lng = Column(Float, nullable=True)
     district = Column(String(150), nullable=False)
     location = Column(String(300), nullable=False)
     severity = Column(String(30), nullable=False)
@@ -682,6 +684,7 @@ def seed_demo_risk_zone():
     db = SessionLocal()
 
     try:
+
         demo_zone = (
             db.query(RiskZone)
             .filter(

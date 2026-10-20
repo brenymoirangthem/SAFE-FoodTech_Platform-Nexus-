@@ -47,12 +47,32 @@ const EmergencyDashboard = () => {
           const alerts = alertsRes.data;
           setAllAlerts(alerts);
           setPendingAlerts(alerts.filter(a => a.status === 'pending'));
-          setRiskZones(riskRes.data);
-          
+        const hardcodedUkhrul = {
+  id: "demo-ukhrul",
+  district: "Ukhrul",
+  location: "Ukhrul Town",
+  severity: "Critical",
+  affected_population: 500,
+  source: "SAFE Demo",
+  confidence: "Demo",
+  lat: 25.0967,
+  lng: 94.363
+};
+
+const combinedRiskZones = [
+  ...riskRes.data.filter(
+    zone => zone.district?.toLowerCase() !== "ukhrul"
+  ),
+  hardcodedUkhrul
+];
+
+setRiskZones(combinedRiskZones);
           localStorage.setItem('emergency_allAlerts', JSON.stringify(alerts));
           localStorage.setItem('emergency_pendingAlerts', JSON.stringify(alerts.filter(a => a.status === 'pending')));
-          localStorage.setItem('emergency_riskZones', JSON.stringify(riskRes.data));
-          
+          localStorage.setItem(
+  'emergency_riskZones',
+  JSON.stringify(combinedRiskZones)
+);
           // Fetch addresses for pending alerts
           const pendingAlertsList = alerts.filter(a => a.status === 'pending');
           pendingAlertsList.forEach(alert => {
@@ -265,24 +285,44 @@ const EmergencyDashboard = () => {
 
                 {/* Main Map */}
                 <div className="flex-1 relative h-[60%] md:h-full order-1 md:order-2">
-                    <MapContainer center={[24.8170, 93.9368]} zoom={11} style={{ height: "100%", width: "100%" }}>
+                    <MapContainer center={[24.8170, 93.9368]} zoom={9} style={{ height: "100%", width: "100%" }}>
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                        {riskZones.map(zone => (
-                            <Circle 
-                                key={zone.id} 
-                                center={[zone.lat, zone.lng]} 
-                                radius={zone.radius}
-                                pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.4 }}
-                            >
-                                <Popup>
-                                    <div className="text-center">
-                                        <b className="text-red-600 uppercase">{t('danger_zone', 'DANGER ZONE')}</b><br/>
-                                        {zone.reason}<br/>
-                                        <span className="text-xs text-gray-600">{t('radius', 'Radius')}: {zone.radius}m</span>
-                                    </div>
-                                </Popup>
-                            </Circle>
-                        ))}
+                        {riskZones
+  .filter(
+    (zone) =>
+      Number.isFinite(Number(zone.lat)) &&
+      Number.isFinite(Number(zone.lng)) &&
+      zone.lat !== null &&
+      zone.lng !== null &&
+      zone.lat !== "" &&
+      zone.lng !== ""
+  )
+  .map((zone) => (
+    <Circle
+      key={zone.id}
+      center={[Number(zone.lat), Number(zone.lng)]}
+      radius={Number(zone.radius) || 1000}
+      pathOptions={{
+        color: "red",
+        fillColor: "red",
+        fillOpacity: 0.3,
+      }}
+    >
+      <Popup>
+        <div className="text-center">
+          <b className="text-red-600 uppercase">
+            {t("danger_zone", "Danger Zone")}
+          </b>
+          <br />
+          {zone.reason || zone.location || zone.district || "Risk area"}
+          <br />
+          <span className="text-xs text-gray-600">
+            {t("radius", "Radius")}: {Number(zone.radius) || 1000} m
+          </span>
+        </div>
+      </Popup>
+    </Circle>
+  ))}
                            {allAlerts
   .filter(
     a =>
