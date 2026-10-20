@@ -647,22 +647,41 @@ const SupplierDashboard = () => {
 
   // --- UPDATED FETCH DATA (No IoT from Python) ---
   // --- ROBUST FETCH DATA ---
-  const fetchData = async () => {
-    try {
-      // 1. Check Center Status
-      const email = localStorage.getItem('supplier_email');
-      let currentCenterId = null;
-      if (email) {
-        const centerRes = await axios.get(`${API}/centers/supplier/${email}`, { timeout: 5000 }).catch(() => null);
-        if (centerRes && centerRes.data.exists) {
-          setCenterInfo(centerRes.data.center);
-          currentCenterId = centerRes.data.center.id;
-        } else {
-          setShowCenterSetup(true);
-          setLoading(false);
-          return;
-        }
+ const fetchData = async () => {
+  try {
+    // 1. Check Center Status
+    const email = localStorage.getItem("supplier_email");
+    let currentCenterId = null;
+
+    if (email) {
+      const centerRes = await axios.get(
+        `${API}/centers/supplier/${encodeURIComponent(email)}`
+      );
+
+      const centers = Array.isArray(centerRes.data)
+        ? centerRes.data
+        : centerRes.data?.centers || [];
+
+      if (centers.length > 0) {
+        const center = centers[0];
+        setCenterInfo(center);
+        currentCenterId = center.id;
+        setShowCenterSetup(false);
+      } else {
+        setCenterInfo(null);
+        setShowCenterSetup(true);
+        setLoading(false);
+        return;
       }
+    } else {
+      setCenterInfo(null);
+      setShowCenterSetup(true);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Fetch Dashboard Data independently
+
 
       // 2. Fetch Dashboard Data independently
       const results = await Promise.allSettled([
@@ -890,7 +909,9 @@ const SupplierDashboard = () => {
       setShowCenterSetup(false);
       fetchData();
     } catch (err) {
-      toast('error', 'Registration Failed', err?.response?.data?.detail || 'Please try again');
+      console.error("CENTER REGISTRATION ERROR:", err);
+      alert("Registration Failed: "+(err?.response?.data?.detail || err?.message || "Unknown error")
+      );
     }
   };
 

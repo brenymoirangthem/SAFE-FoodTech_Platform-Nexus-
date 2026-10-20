@@ -135,6 +135,21 @@ class Center(Base):
         nullable=False,
     )
 
+class InventoryItem(Base):
+    __tablename__ = "inventory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    quantity = Column(Float, nullable=False)
+    unit = Column(String(30), nullable=False, default="kg")
+    category = Column(String(100), nullable=False, default="Vegetables")
+    center_id = Column(Integer, nullable=False, index=True)
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
 Base.metadata.create_all(bind=engine)
 
 
@@ -426,6 +441,132 @@ def get_supplier_center(email: str):
             }
             for center in centers
         ]
+
+    finally:
+        db.close()
+
+# --------------------------------------------------
+# 12. INVENTORY API
+# --------------------------------------------------
+
+class InventoryRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+    quantity: float = Field(ge=0)
+    unit: str = Field(default="kg", max_length=30)
+    category: str = Field(default="Vegetables", max_length=100)
+    center_id: int
+
+
+def inventory_response(item: InventoryItem) -> dict:
+    return {
+        "id": item.id,
+        "name": item.name,
+        "quantity": item.quantity,
+        "unit": item.unit,
+        "category": item.category,
+        "center_id": item.center_id,
+    }
+
+
+@app.get("/inventory")
+def get_inventory(center_id: int):
+    db = SessionLocal()
+
+    try:
+        items = (
+            db.query(InventoryItem)
+            .filter(InventoryItem.center_id == center_id)
+            .order_by(InventoryItem.id.desc())
+            .all()
+        )
+        return [inventory_response(item) for item in items]
+
+    finally:
+        db.close()
+
+
+@app.post("/inventory")
+def add_inventory(request: InventoryRequest):
+    db = SessionLocal()
+
+    try:
+        center = db.query(Center).filter(
+            Center.id == request.center_id
+        ).first()
+
+        if center is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Center not found.",
+            )
+
+        item = InventoryItem(
+            name=request.name.strip(),
+            quantity=request.quantity,
+            unit=request.unit.strip(),
+            category=request.category.strip(),
+            center_id=request.center_id,
+        )
+
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+
+        return inventory_response(item)
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        print("ADD INVENTORY ERROR:", repr(error), flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to add inventory item.",
+        )
+
+    finally:
+        db.close()
+
+
+@app.put("/inventory/{item_id}")
+def update_inventory(item_id: int, request: InventoryRequest):
+    db = SessionLocal()
+
+    try:
+        item = db.query(InventoryItem).filter(
+            InventoryItem.id == item_id,
+            InventoryItem.center_id == request.center_id,
+        ).first()
+
+        if item is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Inventory item not found for this center.",
+            )
+
+        item.name = request.name.strip()
+        item.quantity = request.quantity
+        item.unit = request.unit.strip()
+        item.category = request.category.strip()
+
+        db.commit()
+        db.refresh(item)
+
+        return inventory_response(item)
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        print("UPDATE INVENTORY ERROR:", repr(error), flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update inventory item.",
+        )
 
     finally:
         db.close()
