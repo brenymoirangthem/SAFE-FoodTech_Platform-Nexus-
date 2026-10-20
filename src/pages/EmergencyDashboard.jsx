@@ -40,8 +40,8 @@ const EmergencyDashboard = () => {
     const fetchData = async () => {
         try {
           const [alertsRes, riskRes] = await Promise.all([
-            axios.get('http://localhost:8000/sos-alerts'),
-            axios.get('http://localhost:8000/risk-zones')
+            axios.get('https://safe-foodtech-api.onrender.com/sos-alerts'),
+            axios.get('https://safe-foodtech-api.onrender.com/risk-zones')
           ]);
     
           const alerts = alertsRes.data;

@@ -576,3 +576,98 @@ def update_inventory(item_id: int, request: InventoryRequest):
 
     finally:
         db.close()
+        # --------------------------------------------------
+# 13. EMERGENCY SOS ALERTS AND RISK ZONES
+# --------------------------------------------------
+
+class SOSAlert(Base):
+    __tablename__ = "sos_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_name = Column(String(100), nullable=False)
+    reason = Column(String(500), nullable=False)
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
+    status = Column(String(30), default="pending", nullable=False)
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+class RiskZone(Base):
+    __tablename__ = "risk_zones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    district = Column(String(150), nullable=False)
+    location = Column(String(300), nullable=False)
+    severity = Column(String(30), nullable=False)
+    affected_population = Column(Integer, default=0, nullable=False)
+    source = Column(String(100), default="SAFE", nullable=False)
+    confidence = Column(String(30), default="Medium", nullable=False)
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+Base.metadata.create_all(bind=engine)
+
+
+@app.get("/sos-alerts")
+def get_sos_alerts():
+    db = SessionLocal()
+    try:
+        alerts = (
+            db.query(SOSAlert)
+            .order_by(SOSAlert.id.desc())
+            .all()
+        )
+        return [
+            {
+                "id": a.id,
+                "sender_name": a.sender_name,
+                "reason": a.reason,
+                "lat": a.lat,
+                "lng": a.lng,
+                "status": a.status,
+                "timestamp": (
+                    a.created_at.isoformat()
+                    if a.created_at else None
+                ),
+            }
+            for a in alerts
+        ]
+    finally:
+        db.close()
+
+
+@app.get("/risk-zones")
+def get_risk_zones():
+    db = SessionLocal()
+    try:
+        zones = (
+            db.query(RiskZone)
+            .order_by(RiskZone.id.desc())
+            .all()
+        )
+        return [
+            {
+                "id": z.id,
+                "district": z.district,
+                "location": z.location,
+                "severity": z.severity,
+                "affected_population": z.affected_population,
+                "source": z.source,
+                "confidence": z.confidence,
+                "timestamp": (
+                    z.created_at.isoformat()
+                    if z.created_at else None
+                ),
+            }
+            for z in zones
+        ]
+    finally:
+        db.close()
