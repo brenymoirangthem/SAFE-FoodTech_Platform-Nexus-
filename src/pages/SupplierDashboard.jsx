@@ -52,7 +52,7 @@ import RiskMap from "./RiskMap";
 // import { database } from '../firebase';
 // import { ref, onValue } from 'firebase/database';
 
-const API = "http://localhost:8000";
+const API =(import.meta.env.VITE_API_BASE_URL || "https://safe-foodtech-api.onrender.com").replace(/\/$/, "");
 
 /* -------------------- DIGIT + CURRENCY LOCALIZATION (ALL LANGS) -------------------- */
 const DIGIT_MAP = {
@@ -704,17 +704,17 @@ const SupplierDashboard = () => {
     fetchData(); // Initial load for your backend data
     
     // Poll for IoT updates every 2 seconds to show simulation
-    const interval = setInterval(() => {
+   /* const interval = setInterval(() => {
       axios.get(`${API}/iot/spoilage`)
         .then(res => {
           if (Array.isArray(res.data)) setIotData(res.data);
         })
         .catch(e => console.error("IoT Poll Error", e));
-    }, 2000);
+    }, 2000);*/
 
     return () => {
       clearTimeout(safetyTimer);
-      clearInterval(interval);
+     // clearInterval(interval);
     };
   }, []);
 

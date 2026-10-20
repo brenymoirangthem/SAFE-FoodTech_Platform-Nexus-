@@ -8,6 +8,7 @@ from sqlalchemy import (
     create_engine,
     Column,
     Integer,
+    Float,
     String,
     DateTime,
 )
@@ -27,12 +28,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ],
+   allow_origins=[
+    "https://safe-food-tech-platform-nexus.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -116,6 +118,22 @@ class User(Base):
         nullable=False,
     )
 
+class Center(Base):
+    __tablename__ = "centers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    address = Column(String(300), nullable=False)
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
+    phone = Column(String(30), nullable=False)
+    type = Column(String(100), nullable=False)
+    supplier_email = Column(String(255), nullable=False, index=True)
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 Base.metadata.create_all(bind=engine)
 
@@ -135,7 +153,14 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=72)
 
-
+class CenterRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+    address: str = Field(min_length=2, max_length=300)
+    lat: float
+    lng: float
+    phone: str = Field(min_length=5, max_length=30)
+    type: str = Field(min_length=2, max_length=100)
+    supplier_email: EmailStr
 # --------------------------------------------------
 # 6. HELPER FUNCTIONS
 # --------------------------------------------------
@@ -302,6 +327,104 @@ def get_users():
         return [
             get_user_response(user)
             for user in users
+        ]
+
+    finally:
+        db.close()
+
+# --------------------------------------------------
+# 11. REGISTER AND RETRIEVE SUPPLIER CENTERS
+# --------------------------------------------------
+
+@app.post("/centers")
+def register_center(request: CenterRequest):
+    db = SessionLocal()
+
+    try:
+        supplier_email = normalize_email(str(request.supplier_email))
+
+        supplier = (
+            db.query(User)
+            .filter(User.email == supplier_email)
+            .first()
+        )
+
+        if supplier is None or supplier.role != "supplier":
+            raise HTTPException(
+                status_code=403,
+                detail="A registered supplier account is required.",
+            )
+
+        center = Center(
+            name=request.name.strip(),
+            address=request.address.strip(),
+            lat=request.lat,
+            lng=request.lng,
+            phone=request.phone.strip(),
+            type=request.type.strip(),
+            supplier_email=supplier_email,
+        )
+
+        db.add(center)
+        db.commit()
+        db.refresh(center)
+
+        return {
+            "message": "Center registered successfully.",
+            "center": {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "lat": center.lat,
+                "lng": center.lng,
+                "phone": center.phone,
+                "type": center.type,
+                "supplier_email": center.supplier_email,
+            },
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        print("CENTER REGISTRATION ERROR:", repr(error), flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Center registration failed.",
+        )
+
+    finally:
+        db.close()
+
+
+@app.get("/centers/supplier/{email}")
+def get_supplier_center(email: str):
+    db = SessionLocal()
+
+    try:
+        supplier_email = normalize_email(email)
+
+        centers = (
+            db.query(Center)
+            .filter(Center.supplier_email == supplier_email)
+            .order_by(Center.id.desc())
+            .all()
+        )
+
+        return [
+            {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "lat": center.lat,
+                "lng": center.lng,
+                "phone": center.phone,
+                "type": center.type,
+                "supplier_email": center.supplier_email,
+            }
+            for center in centers
         ]
 
     finally:

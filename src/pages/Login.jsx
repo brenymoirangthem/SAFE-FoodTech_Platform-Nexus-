@@ -8,9 +8,6 @@ import {
   ShoppingBag, Truck, Siren, Globe, KeyRound, X, Download, WifiOff, Check
 } from 'lucide-react';
 
-// Uses the deployed Render API in production and localhost during local development.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
-
 // --- 1. FULL ANIMATED CONSUMER BACKGROUND (Organic Flow) ---
 const ConsumerBackground = () => (
   <div className="absolute inset-0 bg-green-900 overflow-hidden">
@@ -142,7 +139,7 @@ const Login = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Auto-redirect if already logged in (Allows offline access)
-  useEffect(() => {
+  /*useEffect(() => {
     const storedUser = localStorage.getItem('foodtech_user');
     if (storedUser) {
       try {
@@ -153,7 +150,7 @@ const Login = () => {
       } catch (e) { localStorage.removeItem('foodtech_user'); }
     }
   }, [navigate]);
-
+*/
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -269,10 +266,9 @@ const Login = () => {
     i18n.changeLanguage(langs[next]);
   };
 
-  const handleSendOtp = async () => {
-    setError('Phone OTP verification is not configured on the deployed backend yet. You can still register using your email and password.');
-  };
-
+ const handleSendOtp =()=>{
+  setError("Phone OTP Verification is unavailable . You can register using your email and password.");
+ };
   const handleVerifyOtp = () => {
     if (otpInput === serverOtp) {
       setIsPhoneVerified(true);
@@ -290,6 +286,22 @@ const Login = () => {
 
     const email = formData.email.trim();
 
+    if (activeTab === 'emergency') {
+      if (email === 'admin@safe.gov' && formData.password === 'admin123') {
+        localStorage.setItem('foodtech_user', JSON.stringify({
+          email: 'admin@safe.gov',
+          role: 'emergency',
+          name: 'Emergency Admin'
+        }));
+        navigate('/emergency');
+        setIsLoading(false);
+        return;
+      } else {
+        setError('Invalid emergency credentials');
+        setIsLoading(false);
+        return;
+      }
+    }
 
     try {
       if (isRegistering) {
@@ -299,20 +311,25 @@ const Login = () => {
             return;
         }
 
-        await axios.post(`${API_BASE_URL}/register`, {
-          name: formData.fullName,
+      
+
+        await axios.post('https://safe-foodtech-api.onrender.com/register', {
           email: email,
           password: formData.password,
-          role: activeTab
+          name: formData.fullName,
+          phone: formData.phone,
+          age: parseInt(formData.age) || 0,
+          family_members: parseInt(formData.familyMembers) || 1,
+          role: activeTab 
         }, { timeout: 10000 });
         
         // Auto-login after registration
-        const res = await axios.post(`${API_BASE_URL}/login`, {
+        const res = await axios.post('https://safe-foodtech-api.onrender.com/login', {
           email: email,
           password: formData.password
         }, { timeout: 10000 });
 
-        if (res.status === 200 && res.data.user) {
+        if (res.data.success) {
           localStorage.setItem('foodtech_user', JSON.stringify(res.data.user));
           const userRole = (res.data.user.role || '').toLowerCase();
           if (userRole === 'supplier') {
@@ -323,7 +340,7 @@ const Login = () => {
           else if (userRole === 'admin') navigate('/consumer');
         }
       } else {
-        const res = await axios.post(`${API_BASE_URL}/login`, {
+        const res = await axios.post('https://safe-foodtech-api.onrender.com/login', {
           email: email,
           password: formData.password
         }, { timeout: 10000 });
@@ -371,9 +388,9 @@ const Login = () => {
           setError('Invalid credentials: The password you entered is incorrect. Please try again or use "Forgot Password".');
         }
       } else if (err.response?.status === 500) {
-        setError('The server encountered an error. Please try again later.');
+        setError('Server Error: Database mismatch. Please delete "foodtech.db" in the backend folder and restart the server.');
       } else if (err.response?.data?.detail) {
-        setError(`Error: ${err.response.data.detail}`);
+        setError(`Error: ${typeof err.response.data.detail==='string'?err.response.data.detail:JSON.stringify(err.response.data.detail)}`);
       } else {
         setError('Connection failed: Unable to connect to server. Please check your internet connection and try again.');
       }
@@ -404,7 +421,7 @@ const Login = () => {
     }
     
     try {
-        const res = await axios.put(`${API_BASE_URL}/reset-password`, {
+        const res = await axios.put('http://localhost:8000/reset-password', {
             email: email,
             new_password: password
         }, { timeout: 5000 });
@@ -578,7 +595,7 @@ const Login = () => {
                                 placeholder={t('phone')}
                                 value={formData.phone}
                                 onChange={handleChange}
-                                required={isRegistering}
+                                required={false}
                                 disabled={isPhoneVerified}
                             />
                             {!isPhoneVerified && (
