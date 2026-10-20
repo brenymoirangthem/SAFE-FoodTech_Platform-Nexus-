@@ -329,9 +329,42 @@ const SupplierDashboard = () => {
   const chatEndRef = useRef(null);
 
   // Crisis Alerts State - Show only recent/active alerts
-  const [crisisAlerts, setCrisisAlerts] = useState([
-    { id: 1, source: 'News API', location: 'Ukhrul', type: 'Communal Crisis', severity: 'critical', time: '18 min ago', affected: 3200, confidence: 'High' },
-  ]);
+  const [crisisAlerts, setCrisisAlerts] = useState([]);
+  
+  // Load shared crisis zones from the backend
+useEffect(() => {
+  const fetchRiskZones = async () => {
+    try {
+      const response = await fetch(
+        'https://safe-foodtech-api.onrender.com/risk-zones'
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch risk zones');
+      }
+
+      const zones = await response.json();
+
+      setCrisisAlerts(
+        zones.map((zone) => ({
+          id: zone.id,
+          source: zone.source,
+          location: zone.location,
+          district: zone.district,
+          type: 'Crisis Risk Zone',
+          severity: zone.severity.toLowerCase(),
+          affected_population: zone.affected_population,
+          confidence: zone.confidence,
+          time: zone.timestamp,
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching crisis zones:', error);
+    }
+  };
+
+  fetchRiskZones();
+}, []);
 
   // Orders - filter out rejected requests
   const orders = useMemo(() => {
