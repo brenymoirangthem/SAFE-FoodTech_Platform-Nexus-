@@ -576,6 +576,8 @@ def update_inventory(item_id: int, request: InventoryRequest):
 
     finally:
         db.close()
+
+
         # --------------------------------------------------
 # 13. EMERGENCY SOS ALERTS AND RISK ZONES
 # --------------------------------------------------
@@ -669,5 +671,43 @@ def get_risk_zones():
             }
             for z in zones
         ]
+    finally:
+        db.close()
+        # --------------------------------------------------
+# 14. SEED DEMO RISK ZONE
+# --------------------------------------------------
+
+@app.on_event("startup")
+def seed_demo_risk_zone():
+    db = SessionLocal()
+
+    try:
+        demo_zone = (
+            db.query(RiskZone)
+            .filter(
+                RiskZone.district == "Ukhrul",
+                RiskZone.location == "Ukhrul Town",
+                RiskZone.source == "SAFE Demo",
+            )
+            .first()
+        )
+
+        if demo_zone is None:
+            demo_zone = RiskZone(
+                district="Ukhrul",
+                location="Ukhrul Town",
+                severity="Critical",
+                affected_population=500,
+                source="SAFE Demo",
+                confidence="Demo",
+            )
+
+            db.add(demo_zone)
+            db.commit()
+
+    except Exception as error:
+        db.rollback()
+        print("DEMO RISK ZONE ERROR:", repr(error), flush=True)
+
     finally:
         db.close()
