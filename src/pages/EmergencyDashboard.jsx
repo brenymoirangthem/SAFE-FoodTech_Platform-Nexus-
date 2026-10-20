@@ -283,8 +283,18 @@ const EmergencyDashboard = () => {
                                 </Popup>
                             </Circle>
                         ))}
-                        {allAlerts.filter(a => a.status === 'verified').map(alert => (
-                            <Marker key={`alert-${alert.id}`} position={[alert.lat, alert.lng]} icon={L.divIcon({
+                           {allAlerts
+  .filter(
+    a =>
+      a.status === 'verified' &&
+      a.lat != null &&
+      a.lng != null &&
+      a.lat !== '' &&
+      a.lng !== '' &&
+      Number.isFinite(Number(a.lat)) &&
+      Number.isFinite(Number(a.lng))
+  )
+  .map(alert => (   <Marker key={`alert-${alert.id}`} position={[alert.lat, alert.lng]} icon={L.divIcon({
                                 className: 'custom-icon',
                                 html: `<div style="background: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 16px;">⚠</span></div>`
                             })}>
