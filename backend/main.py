@@ -156,7 +156,148 @@ class InventoryItem(Base):
         nullable=False,
     )
 
+class FoodRequest(Base):
+    __tablename__ = "food_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    consumer_name = Column(String(100), nullable=False)
+    item_name = Column(String(150), nullable=False)
+    quantity = Column(Float, nullable=False)
+    center_id = Column(Integer, nullable=True, index=True)
+    center_name = Column(String(150), nullable=True)
+    delivery_type = Column(String(30), nullable=False, default="pickup")
+    phone = Column(String(30), nullable=False, default="Not Provided")
+    is_priority = Column(Integer, nullable=False, default=0)
+    status = Column(String(30), nullable=False, default="Pending")
+    rejection_reason = Column(String(300), nullable=True)
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
 Base.metadata.create_all(bind=engine)
+
+# FOOD REQUEST API ROUTES
+
+class FoodRequestCreate(BaseModel):
+    consumer_name: str
+    item_name: str
+    quantity: float
+    center_id: int | None = None
+    center_name: str | None = None
+    delivery_type: str = "pickup"
+    phone: str = "Not Provided"
+    is_priority: bool = False
+
+
+class FoodRequestReject(BaseModel):
+    reason: str
+
+
+@app.post("/request-food")
+def create_food_request(request: FoodRequestCreate):
+    db = SessionLocal()
+    try:
+        food_request = FoodRequest(
+            consumer_name=request.consumer_name,
+            item_name=request.item_name,
+            quantity=request.quantity,
+            center_id=request.center_id,
+            center_name=request.center_name,
+            delivery_type=request.delivery_type,
+            phone=request.phone,
+            is_priority=1 if request.is_priority else 0,
+            status="Pending",
+        )
+        db.add(food_request)
+        db.commit()
+        db.refresh(food_request)
+
+        return {
+            "id": food_request.id,
+            "consumer_name": food_request.consumer_name,
+            "item_name": food_request.item_name,
+            "quantity": food_request.quantity,
+            "center_id": food_request.center_id,
+            "center_name": food_request.center_name,
+            "delivery_type": food_request.delivery_type,
+            "status": food_request.status,
+            "message": "Food request created successfully",
+        }
+    finally:
+        db.close()
+
+
+@app.get("/food-requests")
+def get_food_requests(center_id: int | None = None):
+    db = SessionLocal()
+    try:
+        query = db.query(FoodRequest)
+
+        if center_id is not None:
+            query = query.filter(FoodRequest.center_id == center_id)
+
+        requests = query.order_by(FoodRequest.id.desc()).all()
+
+        return [
+            {
+                "id": r.id,
+                "consumer_name": r.consumer_name,
+                "item_name": r.item_name,
+                "quantity": r.quantity,
+                "center_id": r.center_id,
+                "center_name": r.center_name,
+                "delivery_type": r.delivery_type,
+                "phone": r.phone,
+                "is_priority": bool(r.is_priority),
+                "status": r.status,
+                "rejection_reason": r.rejection_reason,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in requests
+        ]
+    finally:
+        db.close()
+
+
+@app.post("/fulfill-request/{request_id}")
+def fulfill_food_request(request_id: int):
+    db = SessionLocal()
+    try:
+        food_request = db.query(FoodRequest).filter(
+            FoodRequest.id == request_id
+        ).first()
+
+        if not food_request:
+            raise HTTPException(status_code=404, detail="Food request not found")
+
+        food_request.status = "Fulfilled"
+        db.commit()
+
+        return {"message": "Food request fulfilled successfully"}
+    finally:
+        db.close()
+
+
+@app.post("/reject-request/{request_id}")
+def reject_food_request(request_id: int, request: FoodRequestReject):
+    db = SessionLocal()
+    try:
+        food_request = db.query(FoodRequest).filter(
+            FoodRequest.id == request_id
+        ).first()
+
+        if not food_request:
+            raise HTTPException(status_code=404, detail="Food request not found")
+
+        food_request.status = "Rejected"
+        food_request.rejection_reason = request.reason
+        db.commit()
+
+        return {"message": "Food request rejected successfully"}
+    finally:
+        db.close()
 
 
 # --------------------------------------------------

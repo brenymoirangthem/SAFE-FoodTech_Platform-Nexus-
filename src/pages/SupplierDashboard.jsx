@@ -552,7 +552,7 @@ useEffect(() => {
       // Get supplier location (you can use a fixed location or get from user)
       const supplierLocation = { lat: 24.8170, lng: 93.9368 }; // Default to Imphal
 
-      await axios.post('http://localhost:8000/sos-alert', {
+      await axios.post(`${API_BASE_URL}/SOS-alerts`, {
         lat: supplierLocation.lat,
         lng: supplierLocation.lng,
         reason: sosReason,
@@ -720,22 +720,36 @@ useEffect(() => {
       const results = await Promise.allSettled([
       currentCenterId ? axios.get(`${API}/food-requests?center_id=${currentCenterId}`, { timeout: 5000 }) : Promise.resolve({ data: [] }),
         axios.get(`${API}/risk-zones`, { timeout: 5000 }),
-        axios.get(`${API}/alerts`, { timeout: 5000 }), // This handles the 404 alert error
-        axios.get(`${API}/iot/spoilage`, { timeout: 5000 })
+        axios.get(`${API}/sos-alerts`, { timeout: 5000 }), // This handles the 404 alert error
       ]);
 
-      // Map results back to state only if successful
-      if (results[0].status === 'fulfilled') setInventory(results[0].value.data || []);
-      if (results[1].status === 'fulfilled') setRequests(results[1].value.data || []);
-      if (results[2].status === 'fulfilled') setRiskZones(results[2].value.data || []);
-      if (results[3].status === 'fulfilled' && Array.isArray(results[3].value.data)) {
-        const alerts = results[3].value.data || [];
-        setCrisisAlerts(alerts.map(a => ({
-          ...a,
-          source: a.source || 'News API',
-          affected: a.affected || 3200,
-          confidence: a.confidence || 'High'
-        })));
+      // Map each result to the correct state
+      if (results[0].status === "fulfilled") {
+        setRequests(results[0].value.data || []);
+      }
+
+      if (results[1].status === "fulfilled") {
+        setRiskZones(results[1].value.data || []);
+      }
+
+      if (
+        results[2].status === "fulfilled" &&
+        Array.isArray(results[2].value.data)
+      ) {
+        setCrisisAlerts(
+          results[2].value.data.map((a) => ({
+            ...a,
+            source: a.source || "News API",
+            affected: a.affected || 3200,
+            confidence: a.confidence || "High",
+          }))
+        );
+      }
+
+      if (results[3].status === "fulfilled") {
+        // Keep this response separate; it is IoT spoilage data.
+        // Do not treat it as crisis alerts.
+        console.log("IoT spoilage data:", results[3].value.data);
       }
       if (results[4].status === 'fulfilled') setIotData(results[4].value.data || []);
 

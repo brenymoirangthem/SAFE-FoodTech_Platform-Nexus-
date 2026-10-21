@@ -862,7 +862,7 @@ const ConsumerDashboard = () => {
                             },
                             (err) => {
                                 console.error("Geolocation error:", err);
-                                alert("Unable to retrieve location. Please enable location services.");
+                                setLocationError(true);  
                                 setIsLocating(false);
                             },
                             { enableHighAccuracy: true }
