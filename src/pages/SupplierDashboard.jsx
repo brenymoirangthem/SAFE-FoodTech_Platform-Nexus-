@@ -649,7 +649,7 @@ useEffect(() => {
       i18n.addResourceBundle('hi', 'translation', {
         'item.onion': 'प्याज़', 'item.ginger': 'अदरक', 'item.dal': 'दाल',
         'item.rice_meals': 'चावल का भोजन', 'item.dal_chawal': 'दाल चावल', 'item.water': 'पानी',
-        'add_item': 'वस्तु जोड़ें', 'delete_item': 'वस्तु हटाएं?', 'delete_desc': 'यह इन्वेंट्री से वस्तु को हटा देगा।',
+        'add_item': 'वस्तु जो      ड़ें', 'delete_item': 'वस्तु हटाएं?', 'delete_desc': 'यह इन्वेंट्री से वस्तु को हटा देगा।',
         'cancel': 'रद्द करें', 'delete': 'हटाएं', 'submit': 'जमा करें', 'item_name': 'वस्तु का नाम', 'quantity': 'मात्रा',
         'risk_manager': 'जोखिम क्षेत्र प्रबंधक', 'close': 'बंद करें', 'risk_zone': 'जोखिम क्षेत्र',
         'click_delete': 'हटाने के लिए सर्कल पर क्लिक करें', 'tip': 'सुझाव', 'risk_tip': 'जोखिम क्षेत्र जोड़ने के लिए मानचित्र पर क्लिक करें।',
@@ -718,8 +718,7 @@ useEffect(() => {
 
       // 2. Fetch Dashboard Data independently
       const results = await Promise.allSettled([
-      currentCenterId? axios.get(`${API}/inventory?center_id=${currentCenterId}`, { timeout: 5000 })
-: Promise.resolve({ data: [] }),        currentCenterId ? axios.get(`${API}/food-requests?center_id=${currentCenterId}`, { timeout: 5000 }) : Promise.resolve({ data: [] }),
+      currentCenterId ? axios.get(`${API}/food-requests?center_id=${currentCenterId}`, { timeout: 5000 }) : Promise.resolve({ data: [] }),
         axios.get(`${API}/risk-zones`, { timeout: 5000 }),
         axios.get(`${API}/alerts`, { timeout: 5000 }), // This handles the 404 alert error
         axios.get(`${API}/iot/spoilage`, { timeout: 5000 })
