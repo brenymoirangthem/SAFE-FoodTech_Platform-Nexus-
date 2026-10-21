@@ -718,8 +718,8 @@ useEffect(() => {
 
       // 2. Fetch Dashboard Data independently
       const results = await Promise.allSettled([
-        axios.get(`${API}/inventory`, { timeout: 5000 }),
-        currentCenterId ? axios.get(`${API}/food-requests?center_id=${currentCenterId}`, { timeout: 5000 }) : Promise.resolve({ data: [] }),
+      currentCenterId? axios.get(`${API}/inventory?center_id=${currentCenterId}`, { timeout: 5000 })
+: Promise.resolve({ data: [] }),        currentCenterId ? axios.get(`${API}/food-requests?center_id=${currentCenterId}`, { timeout: 5000 }) : Promise.resolve({ data: [] }),
         axios.get(`${API}/risk-zones`, { timeout: 5000 }),
         axios.get(`${API}/alerts`, { timeout: 5000 }), // This handles the 404 alert error
         axios.get(`${API}/iot/spoilage`, { timeout: 5000 })
