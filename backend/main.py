@@ -418,7 +418,34 @@ def register_center(request: CenterRequest):
 
     finally:
         db.close()
+@app.get("/centers")
+def get_all_centers():
+    db = SessionLocal()
 
+    try:
+        centers = (
+            db.query(Center)
+            .order_by(Center.id.desc())
+            .all()
+        )
+
+        return [
+            {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "lat": center.lat,
+                "lng": center.lng,
+                "phone": center.phone,
+                "type": center.type,
+                "supplier_email": center.supplier_email,
+                "status": "open",
+            }
+            for center in centers
+        ]
+
+    finally:
+        db.close()
 
 @app.get("/centers/supplier/{email}")
 def get_supplier_center(email: str):
@@ -475,16 +502,20 @@ def inventory_response(item: InventoryItem) -> dict:
 
 
 @app.get("/inventory")
-def get_inventory(center_id: int):
+def get_inventory(center_id: int | None = None):
     db = SessionLocal()
-
     try:
-        items = (
-            db.query(InventoryItem)
-            .filter(InventoryItem.center_id == center_id)
-            .order_by(InventoryItem.id.desc())
-            .all()
-        )
+        items_query = db.query(InventoryItem)
+
+        if center_id is not None:
+            items_query = items_query.filter(
+                InventoryItem.center_id == center_id
+            )
+
+        items = items_query.order_by(
+            InventoryItem.id.desc()
+        ).all()
+
         return [inventory_response(item) for item in items]
 
     finally:
@@ -596,8 +627,54 @@ class SOSAlert(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+from fastapi import HTTPException
 
+@app.post("/sos-alert")
+def create_sos_alert(payload: dict):
+    db = SessionLocal()
+    try:
+        alert = SOSAlert(
+            sender_name=payload.get("sender_name", "Anonymous"),
+            reason=payload.get("reason", "").strip(),
+            lat=payload.get("lat"),
+            lng=payload.get("lng"),
+        )
 
+        if not alert.reason:
+            raise HTTPException(
+                status_code=400,
+                detail="Please provide an emergency reason.",
+            )
+
+        if alert.lat is None or alert.lng is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Location coordinates are required.",
+            )
+
+        db.add(alert)
+        db.commit()
+        db.refresh(alert)
+
+        return {
+            "id": alert.id,
+            "sender_name": alert.sender_name,
+            "reason": alert.reason,
+            "lat": alert.lat,
+            "lng": alert.lng,
+            "status": alert.status,
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        db.rollback()
+        print("CREATE SOS ALERT ERROR:", repr(error))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create SOS alert.",
+        )
+    finally:
+        db.close()
 class RiskZone(Base):
     __tablename__ = "risk_zones"
 
@@ -660,6 +737,8 @@ def get_risk_zones():
         return [
             {
                 "id": z.id,
+                "lat":z.lat,
+                "lng":z.lng,
                 "district": z.district,
                 "location": z.location,
                 "severity": z.severity,

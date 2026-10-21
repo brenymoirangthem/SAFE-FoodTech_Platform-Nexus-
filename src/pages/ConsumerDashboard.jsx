@@ -10,7 +10,7 @@ import axios from 'axios';
 import L from 'leaflet';
 import { useTranslation } from 'react-i18next';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||"http://safe-foodtech-api.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||"https://safe-foodtech-api.onrender.com";
 
 const FOOD_CENTERS = [
     { id: 1, name: "Moirang Bazar Food Center", address: "Moirang Bazar, Bishnupur", lat: 24.5167, lng: 93.7667, status: "open", crowd: "High", items: 45, cookedFood: true, menu: ["Rice Meals", "Dal Chawal", "Khichdi", "Vegetable Curry", "Chapati Pack"] },
@@ -223,7 +223,7 @@ const ConsumerDashboard = () => {
     }, []);
 
     // Real-time location tracking
-    useEffect(() => {
+    /*useEffect(() => {
         let watchId;
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition(
@@ -238,10 +238,10 @@ const ConsumerDashboard = () => {
         return () => {
             if (watchId) navigator.geolocation.clearWatch(watchId);
         };
-    }, []);
+    }, []);*/
 
 
-
+// Location is requested only when the user chooses to share it.
     const handleInstallClick = async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
@@ -292,7 +292,7 @@ const ConsumerDashboard = () => {
             try {
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                if (navigator.geolocation) {
+  /*              if (navigator.geolocation) {
                     try {
                         const pos = await new Promise((resolve, reject) => {
                             navigator.geolocation.getCurrentPosition(resolve, reject, { 
@@ -320,14 +320,24 @@ const ConsumerDashboard = () => {
                         }
                     }
                 }
-
+*/
                 // Fetch inventory and centers
-                const [invRes, centersRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/inventory`, { timeout: 5000 }),
-                    axios.get(`${API_BASE_URL}/centers`, { timeout: 5000 })
-                ]);
-                const inventoryData = Array.isArray(invRes.data) ? invRes.data : [];
-                setInventory(inventoryData);
+            
+      const centersRes = await axios.get(
+        `${API_BASE_URL}/centers`,
+        { timeout: 5000 }
+      );
+
+      const inventoryRes = await axios.get(
+        `${API_BASE_URL}/inventory`,
+        { timeout: 5000 }
+      );
+
+      const inventoryData = Array.isArray(inventoryRes.data)
+        ? inventoryRes.data
+        : [];
+
+      setInventory(inventoryData);
 
                 const validData = validateCenters(centersRes.data);
                 let newCenters = [];
