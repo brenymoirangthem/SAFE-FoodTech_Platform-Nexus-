@@ -723,36 +723,35 @@ useEffect(() => {
         axios.get(`${API}/sos-alerts`, { timeout: 5000 }), // This handles the 404 alert error
       ]);
 
-      // Map each result to the correct state
-      if (results[0].status === "fulfilled") {
-        setRequests(results[0].value.data || []);
-      }
+     if (results[0]?.status === "fulfilled") {
+  setRequests(results[0].value.data || []);
+}
 
-      if (results[1].status === "fulfilled") {
-        setRiskZones(results[1].value.data || []);
-      }
+if (results[1]?.status === "fulfilled") {
+  setRiskZones(results[1].value.data || []);
+}
 
-      if (
-        results[2].status === "fulfilled" &&
-        Array.isArray(results[2].value.data)
-      ) {
-        setCrisisAlerts(
-          results[2].value.data.map((a) => ({
-            ...a,
-            source: a.source || "News API",
-            affected: a.affected || 3200,
-            confidence: a.confidence || "High",
-          }))
-        );
-      }
+if (
+  results[2]?.status === "fulfilled" &&
+  Array.isArray(results[2].value.data)
+) {
+  setCrisisAlerts(
+    results[2].value.data.map((a) => ({
+      ...a,
+      source: a.source || "News API",
+      affected: a.affected || 3200,
+      confidence: a.confidence || "High",
+    }))
+  );
+}
 
-      if (results[3].status === "fulfilled") {
-        // Keep this response separate; it is IoT spoilage data.
-        // Do not treat it as crisis alerts.
-        console.log("IoT spoilage data:", results[3].value.data);
-      }
-      if (results[4].status === 'fulfilled') setIotData(results[4].value.data || []);
+if (results[3]?.status === "fulfilled") {
+  console.log("IoT spoilage data:", results[3].value.data);
+}
 
+if (results[4]?.status === "fulfilled") {
+  setIoTData(results[4].value.data || []);
+}
       setLastSync(new Date());
       setLoading(false);
     } catch (err) {
